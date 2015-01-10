@@ -7,15 +7,20 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.log4j.Logger;
+import static org.apache.log4j.Level.*;
+
 public class Conflict {
 	private int numCorrect;
 	private List<Character> options = new ArrayList<Character>(4);
 	private Iterator<Character> iter;
 	private char c;
+	
+	private static Logger logger = Logger.getLogger(Conflict.class);
 
 	Conflict(int numCorrect, List<Character> options) {
 		if (options.size() <= numCorrect) {
-			System.err.println("Something's wrong in Conflict constructor");
+			logger.log(FATAL, "Options size lte numCorrect in Conflict constructor");
 			System.exit(1);
 		}
 		this.numCorrect = numCorrect;
@@ -24,12 +29,12 @@ public class Conflict {
 	}
 
 	boolean check() {
-		System.out.print("Checking conflict, " + numCorrect + " correct from " + options.size() + " letters: ");
+		logger.log(DEBUG, "Checking conflict, " + numCorrect + " correct from " + options.size() + " letters: ");
 		iter = options.iterator();
 		while (iter.hasNext()) {
 			c = iter.next();
-			System.out.print(c + "-");
-			System.out.print(JottoSolver.letters[(int) c-65] + " ");
+			logger.log(DEBUG, c + "-");
+			logger.log(DEBUG, JottoSolver.letters[(int) c-65] + " ");
 			if (JottoSolver.letters[(int) c-65] == -1) {
 				iter.remove();
 			} else if (JottoSolver.letters[(int) c-65] == 1) {
@@ -37,9 +42,9 @@ public class Conflict {
 				numCorrect--;
 			}
 		}
-		System.out.println();
+		logger.log(DEBUG, "\n"); 
 		if (options.size() < numCorrect) {
-			System.err.println("Something's wrong in Conflict check");
+			logger.log(FATAL, "Options size less than numCorrect in Conflict check");
 			System.exit(1);
 		}
 		if (numCorrect == 0) {
@@ -52,10 +57,8 @@ public class Conflict {
 			for (Character goodChar: options) {
 				JottoSolver.letters[(int) goodChar-65] = 1;
 			}
-			System.out.println("returning true");
 			return true;
 		}
-		System.out.println("returning false");
 		return false;
 	}
 	

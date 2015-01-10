@@ -1,48 +1,70 @@
 package jottosolver;
 
-import java.util.*;
-import java.io.*;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.Scanner;
+
+import org.apache.log4j.Logger;
+import static org.apache.log4j.Level.*;
 
 public class JottoSolver {
 
 	private static final String HIDDEN_WORD = "LOVE";
 	private static final int LOW_PROB_WORDS_TO_REMOVE = 0;
 	private static int totalGuesses = 0;
-		
 	private static int[] letterCounts = new int[26];
 	private static float[] letterProbs = new float[26];
 	public static LinkedList<Word> words = new LinkedList<Word>();
+	//////////////////////////////////////////
 	// -1 - No
 	// 0 - Not sure
 	// 1 - Yes
 	public static int[] letters = new int[26];
+	//////////////////////////////////////////
 	private static ConflictManager conflictManager = new ConflictManager();
+	
+	private static Logger logger = Logger.getLogger(JottoSolver.class);
+	
 
-	public static void main(String[] args) throws Exception {
+	public static void main(String[] args) {
+		Logger.getRootLogger().setLevel(DEBUG);
+		
 		int i;
 		for (i = 0; i < letterCounts.length; i++) {
 			letterCounts[i] = 0;
 			letters[i] = 0;
 		}
-
-		Scanner input = new Scanner(new File("filteredwords"));
-		int totalChars = 0;
-
-		while (input.hasNext()) {
-			String word = input.next();
-			words.add(new Word(word));
-			for (i = 0; i < 4; i++) {
-				totalChars++;
-				letterCounts[((int) word.charAt(i)) - 65]++;
-			}
-		}
-		for (i = 0; i < letterCounts.length; i++) {
-			//System.out.printf("%c: %4d\n", (char) i+65, letterCounts[i]);
-			letterProbs[i] = (float) letterCounts[i] / totalChars;
-			//System.out.printf("%c: %.4f\n", (char) i+65, letterProbs[i]);
-		}
 		
-		input.close();
+		Scanner input;
+		try {
+			input = new Scanner(new File("filteredwords"));
+			int totalChars = 0;
+
+			while (input.hasNext()) {
+				String word = input.next();
+				words.add(new Word(word));
+				for (i = 0; i < 4; i++) {
+					totalChars++;
+					letterCounts[((int) word.charAt(i)) - 65]++;
+				}
+			}
+			for (i = 0; i < letterCounts.length; i++) {
+				logger.log(DEBUG, String.format("%c: %4d\n", (char) i+65, letterCounts[i]));
+				letterProbs[i] = (float) letterCounts[i] / totalChars;
+				logger.log(DEBUG, String.format("%c: %.4f\n", (char) i+65, letterProbs[i]));
+			}
+
+			input.close();
+		} catch (FileNotFoundException e) {
+			logger.log(FATAL, "Filtered words file not found", e);
+			System.exit(1);
+		} catch (Exception e) {
+			logger.log(FATAL, "", e);
+			System.exit(1);
+		}
 
 		for (Word w: words) {
 			w.prob = letterProbs[(int)w.word.charAt(0)-65];
@@ -52,12 +74,12 @@ public class JottoSolver {
 		}
 		Collections.sort(words);
 
-		/*
+		
 		for (i = 0; i < 25; i++) {
-			System.out.printf("%s: %.4f\n", words.get(i).word, words.get(i).prob);
+			logger.log(DEBUG, String.format("%s: %.4f\n", words.get(i).word, words.get(i).prob));
 		}
-		System.out.printf("%s: %.4f\n", words.get(words.size()-1).word, words.get(words.size()-1).prob);
-		*/
+		logger.log(DEBUG, String.format("%s: %.4f\n", words.get(words.size()-1).word, words.get(words.size()-1).prob));
+		
 		
 		for (i = 0; i < LOW_PROB_WORDS_TO_REMOVE; i++) {
 			words.removeFirst();
@@ -183,14 +205,15 @@ public class JottoSolver {
 				lettersFound = 4;
 				break;
 			default:
-				System.err.println("Something wrong.");
+				logger.log(FATAL, "More than four letters found");
 				System.exit(1);
 			}
 			
 			conflictManager.check();
 			
 			lettersFound = printYesAndNo(); //removethis
-		} 
+		}
+		input.close();
 		
 		System.out.println("All four letters found: ");
 		for (i = 0; i < letters.length; i++) {
@@ -200,6 +223,7 @@ public class JottoSolver {
 		}
 		System.out.println("Took " + totalGuesses + " guesses.");
 	}
+
 	
 	private static int printYesAndNo() {
 		System.out.print("YES: ");
